@@ -5,6 +5,6 @@
 
 typedef uint8_t pixel_t;
 
-int process_edge(pixel_t *x, pixel_t *y, int dist_to_next, int n, int radius);
+void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius);
 
 #endif

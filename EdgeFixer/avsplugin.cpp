@@ -5,60 +5,139 @@ extern "C" {
 #include "EdgeFixer.h"
 }
 
-class EdgeFixer : public GenericVideoFilter
-{
+class ContinuityFixer: public GenericVideoFilter {
+	int m_left;
+	int m_top;
+	int m_right;
+	int m_bottom;
 	int m_radius;
 public:
-	EdgeFixer(PClip _child, int radius, IScriptEnvironment *env);
+	ContinuityFixer(PClip _child, int left, int top, int right, int bottom, int radius)
+		: GenericVideoFilter(_child), m_left(left), m_top(top), m_right(right), m_bottom(bottom), m_radius(radius)
+	{
+	}
 
-	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env);
+	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
+	{
+		PVideoFrame frame;
+		int width, height, stride;
+		BYTE *write_ptr;
+
+		frame = child->GetFrame(n, env);
+
+		width = frame->GetRowSize();
+		height = frame->GetHeight();
+		stride = frame->GetPitch();
+
+		env->MakeWritable(&frame);
+		write_ptr = frame->GetWritePtr();
+
+		// top
+		for (int i = 0; i < m_top; ++i) {
+			int ref_row = m_top - i;
+			process_edge(write_ptr + stride * (ref_row - 1), write_ptr + stride * ref_row, 1, 1, width, m_radius);
+		}
+
+		// bottom
+		for (int i = 0; i < m_bottom; ++i) {
+			int ref_row = height - m_bottom - 1 + i;
+			process_edge(write_ptr + stride * (ref_row + 1), write_ptr + stride * ref_row, 1, 1, width, m_radius);
+		}
+
+		// left
+		for (int i = 0; i < m_left; ++i) {
+			int ref_col = m_left - i;
+			process_edge(write_ptr + ref_col - 1, write_ptr + ref_col, stride, stride, height, m_radius);
+		}
+
+		// right
+		for (int i = 0; i < m_right; ++i) {
+			int ref_col = width - m_right - 1 + i;
+			process_edge(write_ptr + ref_col + 1, write_ptr + ref_col, stride, stride, height, m_radius);
+		}
+
+		return frame;
+	}
 };
 
-EdgeFixer::EdgeFixer(PClip _child, int radius, IScriptEnvironment *env)
-	: GenericVideoFilter(_child), m_radius(radius)
-{}
+class ReferenceFixer: public GenericVideoFilter {
+	PClip m_reference;
+	int m_left;
+	int m_top;
+	int m_right;
+	int m_bottom;
+	int m_radius;
+public:
+	ReferenceFixer(PClip _child, PClip reference, int left, int top, int right, int bottom, int radius)
+		: GenericVideoFilter(_child), m_reference(reference), m_left(left), m_top(top), m_right(right), m_bottom(bottom), m_radius(radius)
+	{
+	}
 
-PVideoFrame __stdcall EdgeFixer::GetFrame(int n, IScriptEnvironment *env)
-{
-	PVideoFrame frame;
-	int width, height, stride;
-	BYTE *write_ptr;
+	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
+	{
+		PVideoFrame frame, ref_frame;
+		int width, height;
+		int stride, ref_stride;
+		BYTE *write_ptr;
+		const BYTE *read_ptr;
 
-	frame = child->GetFrame(n, env);
-	env->MakeWritable(&frame);
-	write_ptr = frame->GetWritePtr();
+		frame = child->GetFrame(n, env);
 
-	width = frame->GetRowSize();
-	height = frame->GetHeight();
-	stride = frame->GetPitch();
+		width = frame->GetRowSize();
+		height = frame->GetHeight();
+		stride = frame->GetPitch();
 
-	// top
-	if (process_edge(write_ptr, write_ptr + stride, 1, width, m_radius))
-		env->ThrowError("[EdgeFixer] internal error");
-	// bottom
-	if (process_edge(write_ptr + stride * (height - 1), write_ptr + stride * (height - 2), 1, width, m_radius))
-		env->ThrowError("[EdgeFixer] internal error");
-	// left
-	if (process_edge(write_ptr, write_ptr + 1, stride, height, m_radius))
-		env->ThrowError("[EdgeFixer] internal error");
-	// right
-	if (process_edge(write_ptr + width - 1, write_ptr + width - 2, stride, height, m_radius))
-		env->ThrowError("[EdgeFixer] internal error");
+		env->MakeWritable(&frame);
+		write_ptr = frame->GetWritePtr();
 
-	return frame;
-}
+		ref_frame = m_reference->GetFrame(n, env);
+		ref_stride = ref_frame->GetPitch();
 
-AVSValue __cdecl Create_EdgeFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
+		read_ptr = ref_frame->GetReadPtr();
+
+		// top
+		for (int i = 0; i < m_top; ++i) {
+			process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius);
+		}
+		// bottom
+		for (int i = 0; i < m_bottom; ++i) {
+			process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius);
+		}
+		// left
+		for (int i = 0; i < m_left; ++i) {
+			process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius);
+		}
+		// right
+		for (int i = 0; i < m_right; ++i) {
+			process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius);
+		}
+
+		return frame;
+	}
+};
+
+AVSValue __cdecl Create_ContinuityFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
 {
 	if (!args[0].AsClip()->GetVideoInfo().IsPlanar())
-		env->ThrowError("input clip must be planar");
+		env->ThrowError("[ContinuityFixer] input clip must be planar");
 
-	return new EdgeFixer(args[0].AsClip(), args[1].AsInt(0), env);
+	return new ContinuityFixer(args[0].AsClip(), args[1].AsInt(0), args[2].AsInt(0), args[3].AsInt(0), args[4].AsInt(0), args[5].AsInt(0));
+}
+
+AVSValue __cdecl Create_ReferenceFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
+{
+	if (!args[0].AsClip()->GetVideoInfo().IsPlanar() || !args[1].AsClip()->GetVideoInfo().IsPlanar())
+		env->ThrowError("[ReferenceFixer] clips must be planar");
+	if (args[0].AsClip()->GetVideoInfo().width != args[1].AsClip()->GetVideoInfo().width || args[0].AsClip()->GetVideoInfo().height != args[1].AsClip()->GetVideoInfo().height)
+		env->ThrowError("[ReferenceFixer] clips must have same dimensions");
+
+	return new ReferenceFixer(args[0].AsClip(), args[1].AsClip(), args[2].AsInt(0), args[3].AsInt(0), args[4].AsInt(0), args[5].AsInt(0), args[6].AsInt(0));
 }
 
 extern "C" __declspec(dllexport)
 const char* __stdcall AvisynthPluginInit2(IScriptEnvironment* env)
 {
-	env->AddFunction("EdgeFixer", "c[radius]i", Create_EdgeFixer, NULL);
+	env->AddFunction("ContinuityFixer", "c[left]i[top]i[right]i[bottom]i[radius]i", Create_ContinuityFixer, NULL);
+	env->AddFunction("ReferenceFixer", "cc[left]i[top]i[right]i[bottom]i[radius]i", Create_ReferenceFixer, NULL);
 	return "EdgeFixer";
 }

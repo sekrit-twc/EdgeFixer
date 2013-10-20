@@ -20,13 +20,10 @@ void least_squares(int n, least_squares_data *d, float *a, float *b)
 	*b = (interval_y - *a * interval_x) / (float) n;
 }
 
-int process_edge(pixel_t *x, pixel_t *y, int dist_to_next, int n, int radius)
+void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius)
 {
 	least_squares_data *buf = (least_squares_data *) malloc(n * sizeof(least_squares_data));
 	float a, b;
-
-	if (!buf)
-		return -1;
 
 	buf[0].integral_x = x[0];
 	buf[0].integral_y = y[0];
@@ -34,8 +31,8 @@ int process_edge(pixel_t *x, pixel_t *y, int dist_to_next, int n, int radius)
 	buf[0].integral_xsqr = x[0] * x[0];
 
 	for (int i = 1; i < n; ++i) {
-		int _x = x[i * dist_to_next];
-		int _y = y[i * dist_to_next];
+		int _x = x[i * x_dist_to_next];
+		int _y = y[i * y_dist_to_next];
 
 		buf[i].integral_x = buf[i - 1].integral_x + _x;
 		buf[i].integral_y = buf[i - 1].integral_y + _y;
@@ -53,16 +50,15 @@ int process_edge(pixel_t *x, pixel_t *y, int dist_to_next, int n, int radius)
 			if (right > n - 1)
 				right = n - 1;
 			least_squares(right - left + 1, buf + left, &a, &b);
-			x[i * dist_to_next] = (pixel_t) (x[i * dist_to_next] * a + b);
+			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
 		for (int i = 0; i < n; ++i)
-			x[i * dist_to_next] = (pixel_t) (x[i * dist_to_next] * a + b);
+			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
 	}
 
 	free(buf);
-	return 0;
 }
 
 #if 0
@@ -115,17 +111,16 @@ int fix_edges(const char *infile, const char *outfile, int width, int height, in
 	}
 
 	// left
-	if (process_edge(&frame[0], &frame[1], width, height, radius))
-		goto fail;
+	process_edge(&frame[0], &frame[1], width, width, height, radius);
+
 	// right
-	if (process_edge(&frame[width - 1], &frame[width - 2], width, height, radius))
-		goto fail;
+	process_edge(&frame[width - 1], &frame[width - 2], width, width, height, radius);
+
 	// top
-	if (process_edge(&frame[0], &frame[width], 1, width, radius))
-		goto fail;
+	process_edge(&frame[0], &frame[width], 1, 1, width, radius);
+
 	// bottom
-	if (process_edge(&frame[width * (height - 1)], &frame[width * (height - 2)], 1, width, radius))
-		goto fail;
+	process_edge(&frame[width * (height - 1)], &frame[width * (height - 2)], 1, 1, width, radius);
 
 	if (write_frame(frame, out, width, height)) {
 		fprintf(stderr, "error writing frame");
