@@ -34,16 +34,16 @@ PVideoFrame __stdcall EdgeFixer::GetFrame(int n, IScriptEnvironment *env)
 
 	// top
 	if (process_edge(write_ptr, write_ptr + stride, 1, width, m_radius))
-		throw AvisynthError("[EdgeFixer] internal error");
+		env->ThrowError("[EdgeFixer] internal error");
 	// bottom
 	if (process_edge(write_ptr + stride * (height - 1), write_ptr + stride * (height - 2), 1, width, m_radius))
-		throw AvisynthError("[EdgeFixer] internal error");
+		env->ThrowError("[EdgeFixer] internal error");
 	// left
 	if (process_edge(write_ptr, write_ptr + 1, stride, height, m_radius))
-		throw AvisynthError("[EdgeFixer] internal error");
+		env->ThrowError("[EdgeFixer] internal error");
 	// right
 	if (process_edge(write_ptr + width - 1, write_ptr + width - 2, stride, height, m_radius))
-		throw AvisynthError("[EdgeFixer] internal error");
+		env->ThrowError("[EdgeFixer] internal error");
 
 	return frame;
 }
@@ -51,7 +51,7 @@ PVideoFrame __stdcall EdgeFixer::GetFrame(int n, IScriptEnvironment *env)
 AVSValue __cdecl Create_EdgeFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
 {
 	if (!args[0].AsClip()->GetVideoInfo().IsPlanar())
-		throw AvisynthError("input clip must be planar");
+		env->ThrowError("input clip must be planar");
 
 	return new EdgeFixer(args[0].AsClip(), args[1].AsInt(0), env);
 }

@@ -71,11 +71,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="avsplugin.cpp" />
-    <ClCompile Include="EdgeFixer.c" />
+    <ClCompile Include="edgefixer.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="avisynth.h" />
-    <ClInclude Include="EdgeFixer.h" />
+    <ClInclude Include="edgefixer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

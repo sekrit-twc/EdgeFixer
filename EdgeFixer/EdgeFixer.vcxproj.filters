@@ -18,15 +18,15 @@
     <ClCompile Include="avsplugin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="EdgeFixer.c">
+    <ClCompile Include="edgefixer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EdgeFixer.h">
+    <ClInclude Include="avisynth.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="avisynth.h">
+    <ClInclude Include="edgefixer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
