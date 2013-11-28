@@ -20,9 +20,14 @@ void least_squares(int n, least_squares_data *d, float *a, float *b)
 	*b = (interval_y - *a * interval_x) / (float) n;
 }
 
-void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius)
+size_t required_buffer(int n)
 {
-	least_squares_data *buf = (least_squares_data *) malloc(n * sizeof(least_squares_data));
+	return n * sizeof(least_squares_data);
+}
+
+void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius, void *tmp)
+{
+	least_squares_data *buf = (least_squares_data *) tmp;
 	float a, b;
 
 	buf[0].integral_x = x[0];
@@ -57,8 +62,6 @@ void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_t
 		for (int i = 0; i < n; ++i)
 			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
 	}
-
-	free(buf);
 }
 
 #if 0
@@ -86,6 +89,8 @@ int fix_edges(const char *infile, const char *outfile, int width, int height, in
 {
 	FILE *in = NULL, *out = NULL;
 	pixel_t *frame = NULL;
+	void *tmp = NULL;
+	int ret = -1;
 
 	in = fopen(infile, "rb");
 	if (!in) {
@@ -110,36 +115,38 @@ int fix_edges(const char *infile, const char *outfile, int width, int height, in
 		goto fail;
 	}
 
+	tmp = malloc(required_buffer(width > height ? width : height));
+	if (!tmp) {
+		fprintf(stderr, "error allocating temporary buffer");
+		goto fail;
+	}
+
 	// left
-	process_edge(&frame[0], &frame[1], width, width, height, radius);
+	process_edge(&frame[0], &frame[1], width, width, height, radius, tmp);
 
 	// right
-	process_edge(&frame[width - 1], &frame[width - 2], width, width, height, radius);
+	process_edge(&frame[width - 1], &frame[width - 2], width, width, height, radius, tmp);
 
 	// top
-	process_edge(&frame[0], &frame[width], 1, 1, width, radius);
+	process_edge(&frame[0], &frame[width], 1, 1, width, radius, tmp);
 
 	// bottom
-	process_edge(&frame[width * (height - 1)], &frame[width * (height - 2)], 1, 1, width, radius);
+	process_edge(&frame[width * (height - 1)], &frame[width * (height - 2)], 1, 1, width, radius, tmp);
 
 	if (write_frame(frame, out, width, height)) {
 		fprintf(stderr, "error writing frame");
 		goto fail;
 	}
 
-	free(frame);
-	fclose(out);
-	fclose(in);
-	return 0;
-
+	ret = 0;
 fail:
-	if (frame)
-		free(frame);
+	free(tmp);
+	free(frame);
 	if (out)
 		fclose(out);
 	if (in)
 		fclose(in);
-	return -1;
+	return ret;
 }
 
 int main(int argc, const char **argv)

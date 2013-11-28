@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <Windows.h>
 #include "avisynth.h"
 
@@ -19,42 +20,44 @@ public:
 
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
-		PVideoFrame frame;
-		int width, height, stride;
-		BYTE *write_ptr;
+		PVideoFrame frame = child->GetFrame(n, env);
 
-		frame = child->GetFrame(n, env);
+		int width = frame->GetRowSize();
+		int height = frame->GetHeight();
+		int stride = frame->GetPitch();
 
-		width = frame->GetRowSize();
-		height = frame->GetHeight();
-		stride = frame->GetPitch();
+		void *tmp = malloc(required_buffer(width > height ? width : height));
+		if (!tmp)
+			env->ThrowError("[ContinuityFixer] error allocating temporary buffer");
 
 		env->MakeWritable(&frame);
-		write_ptr = frame->GetWritePtr();
+		BYTE *ptr = frame->GetWritePtr();
 
 		// top
 		for (int i = 0; i < m_top; ++i) {
 			int ref_row = m_top - i;
-			process_edge(write_ptr + stride * (ref_row - 1), write_ptr + stride * ref_row, 1, 1, width, m_radius);
+			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
 			int ref_row = height - m_bottom - 1 + i;
-			process_edge(write_ptr + stride * (ref_row + 1), write_ptr + stride * ref_row, 1, 1, width, m_radius);
+			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// left
 		for (int i = 0; i < m_left; ++i) {
 			int ref_col = m_left - i;
-			process_edge(write_ptr + ref_col - 1, write_ptr + ref_col, stride, stride, height, m_radius);
+			process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		// right
 		for (int i = 0; i < m_right; ++i) {
 			int ref_col = width - m_right - 1 + i;
-			process_edge(write_ptr + ref_col + 1, write_ptr + ref_col, stride, stride, height, m_radius);
+			process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
+
+		free(tmp);
 
 		return frame;
 	}
@@ -75,41 +78,39 @@ public:
 
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
-		PVideoFrame frame, ref_frame;
-		int width, height;
-		int stride, ref_stride;
-		BYTE *write_ptr;
-		const BYTE *read_ptr;
+		PVideoFrame frame = child->GetFrame(n, env);
 
-		frame = child->GetFrame(n, env);
+		int width = frame->GetRowSize();
+		int height = frame->GetHeight();
+		int stride = frame->GetPitch();
 
-		width = frame->GetRowSize();
-		height = frame->GetHeight();
-		stride = frame->GetPitch();
+		void *tmp = malloc(required_buffer(width > height ? width : height));
+		if (!tmp)
+			env->ThrowError("[ReferenceFixer] error allocating temporary buffer");
 
 		env->MakeWritable(&frame);
-		write_ptr = frame->GetWritePtr();
+		BYTE *write_ptr = frame->GetWritePtr();
 
-		ref_frame = m_reference->GetFrame(n, env);
-		ref_stride = ref_frame->GetPitch();
+		PVideoFrame ref_frame = m_reference->GetFrame(n, env);
+		int ref_stride = ref_frame->GetPitch();
 
-		read_ptr = ref_frame->GetReadPtr();
+		const BYTE *read_ptr = ref_frame->GetReadPtr();
 
 		// top
 		for (int i = 0; i < m_top; ++i) {
-			process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius);
+			process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
 		}
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
-			process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius);
+			process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
 		}
 		// left
 		for (int i = 0; i < m_left; ++i) {
-			process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius);
+			process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
 		}
 		// right
 		for (int i = 0; i < m_right; ++i) {
-			process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius);
+			process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
 		}
 
 		return frame;
