@@ -72,10 +72,13 @@
   <ItemGroup>
     <ClCompile Include="avsplugin.cpp" />
     <ClCompile Include="edgefixer.c" />
+    <ClCompile Include="vsplugin.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="avisynth.h" />
     <ClInclude Include="edgefixer.h" />
+    <ClInclude Include="VapourSynth.h" />
+    <ClInclude Include="VSHelper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

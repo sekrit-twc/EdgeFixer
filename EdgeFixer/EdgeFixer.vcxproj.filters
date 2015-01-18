@@ -21,12 +21,21 @@
     <ClCompile Include="edgefixer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vsplugin.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="avisynth.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="edgefixer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VapourSynth.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VSHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

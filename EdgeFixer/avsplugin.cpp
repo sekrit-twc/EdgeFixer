@@ -3,7 +3,7 @@
 #include "avisynth.h"
 
 extern "C" {
-#include "EdgeFixer.h"
+#include "edgefixer.h"
 }
 
 class ContinuityFixer: public GenericVideoFilter {
