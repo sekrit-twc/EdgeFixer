@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include "EdgeFixer.h"
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+
 typedef struct least_squares_data {
 	int integral_x;
 	int integral_y;
@@ -18,6 +21,11 @@ static void least_squares(int n, least_squares_data *d, float *a, float *b)
 	// add 0.001f to denominator to prevent division by zero
 	*a = ((float) n * interval_xy - interval_x * interval_y) / ((interval_xsqr * (float) n - interval_x * interval_x) + 0.001f);
 	*b = (interval_y - *a * interval_x) / (float) n;
+}
+
+static uint8_t float_to_u8(float x)
+{
+	return (uint8_t)(MIN(MAX(x, 0), UINT8_MAX) + 0.5f);
 }
 
 size_t edgefixer_required_buffer(int n)
@@ -55,12 +63,12 @@ void edgefixer_process_edge(uint8_t *x, const uint8_t *y, int x_dist_to_next, in
 			if (right > n - 1)
 				right = n - 1;
 			least_squares(right - left + 1, buf + left, &a, &b);
-			x[i * x_dist_to_next] = (uint8_t)(x[i * x_dist_to_next] * a + b);
+			x[i * x_dist_to_next] = float_to_u8(x[i * x_dist_to_next] * a + b);
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
 		for (int i = 0; i < n; ++i)
-			x[i * x_dist_to_next] = (uint8_t)(x[i * x_dist_to_next] * a + b);
+			x[i * x_dist_to_next] = float_to_u8(x[i * x_dist_to_next] * a + b);
 	}
 }
 
