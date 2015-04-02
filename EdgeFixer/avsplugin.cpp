@@ -113,6 +113,8 @@ public:
 			process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
 		}
 
+		free(tmp);
+
 		return frame;
 	}
 };
