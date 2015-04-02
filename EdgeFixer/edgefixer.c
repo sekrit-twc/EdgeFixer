@@ -8,7 +8,7 @@ typedef struct least_squares_data {
 	int integral_xsqr;
 } least_squares_data;
 
-void least_squares(int n, least_squares_data *d, float *a, float *b)
+static void least_squares(int n, least_squares_data *d, float *a, float *b)
 {
 	float interval_x = (float) (d[n - 1].integral_x - d[0].integral_x);
 	float interval_y = (float) (d[n - 1].integral_y - d[0].integral_y);
@@ -20,12 +20,12 @@ void least_squares(int n, least_squares_data *d, float *a, float *b)
 	*b = (interval_y - *a * interval_x) / (float) n;
 }
 
-size_t required_buffer(int n)
+size_t edgefixer_required_buffer(int n)
 {
 	return n * sizeof(least_squares_data);
 }
 
-void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius, void *tmp)
+void edgefixer_process_edge(uint8_t *x, const uint8_t *y, int x_dist_to_next, int y_dist_to_next, int n, int radius, void *tmp)
 {
 	least_squares_data *buf = (least_squares_data *) tmp;
 	float a, b;
@@ -55,19 +55,19 @@ void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_t
 			if (right > n - 1)
 				right = n - 1;
 			least_squares(right - left + 1, buf + left, &a, &b);
-			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
+			x[i * x_dist_to_next] = (uint8_t)(x[i * x_dist_to_next] * a + b);
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
 		for (int i = 0; i < n; ++i)
-			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
+			x[i * x_dist_to_next] = (uint8_t)(x[i * x_dist_to_next] * a + b);
 	}
 }
 
 #if 0
 #include <stdio.h>
 
-int read_frame(pixel_t *buf, FILE *in, int width, int height)
+static int read_frame(pixel_t *buf, FILE *in, int width, int height)
 {
 	for (int i = 0; i < height; ++i) {
 		if (fread(buf + i * width, sizeof(pixel_t), width, in) != width)
@@ -76,7 +76,7 @@ int read_frame(pixel_t *buf, FILE *in, int width, int height)
 	return 0;
 }
 
-int write_frame(pixel_t *buf, FILE *out, int width, int height)
+static int write_frame(pixel_t *buf, FILE *out, int width, int height)
 {
 	for (int i = 0; i < height; ++i) {
 		if (fwrite(buf + i * width, sizeof(pixel_t), width, out) != width)
@@ -85,7 +85,7 @@ int write_frame(pixel_t *buf, FILE *out, int width, int height)
 	return 0;
 }
 
-int fix_edges(const char *infile, const char *outfile, int width, int height, int radius)
+static int fix_edges(const char *infile, const char *outfile, int width, int height, int radius)
 {
 	FILE *in = NULL, *out = NULL;
 	pixel_t *frame = NULL;

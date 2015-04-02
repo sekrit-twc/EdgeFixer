@@ -33,10 +33,10 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 		int plane_order[3] = { 0, 1, 2 };
 
 		VSFrameRef *dst_frame = vsapi->newVideoFrame2(data->vi.format, data->vi.width, data->vi.height, src_planes, plane_order, src_frame, core);
-		pixel_t *ptr = vsapi->getWritePtr(dst_frame, 0);
+		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
 		int stride = vsapi->getStride(dst_frame, 0);
 
-		void *tmp = malloc(required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
+		void *tmp = malloc(edgefixer_required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
 		if (!tmp) {
 			vsapi->setFilterError("error allocating buffer", frameCtx);
 			goto fail;
@@ -44,19 +44,19 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 		
 		for (i = 0; i < data->top; ++i) {
 			int ref_row = data->top - i;
-			process_edge(ptr + stride * (ref_row - i), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
+			edgefixer_process_edge(ptr + stride * (ref_row - i), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
 			int ref_row = data->vi.height - data->bottom - 1 + i;
-			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
+			edgefixer_process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
 			int ref_col = data->left - i;
-			process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
+			edgefixer_process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
 		}
 		for (i = 0; i < data->radius; ++i) {
 			int ref_col = data->vi.width - data->right - 1 + i;
-			process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
+			edgefixer_process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
 		}
 
 		ret = dst_frame;
@@ -85,30 +85,30 @@ static const VSFrameRef * VS_CC vs_reference_get_frame(int n, int activationReas
 		int plane_order[3] = { 0, 1, 2 };
 
 		VSFrameRef *dst_frame = vsapi->newVideoFrame2(data->vi.format, data->vi.width, data->vi.height, src_planes, plane_order, src_frame, core);
-		pixel_t *ptr = vsapi->getWritePtr(dst_frame, 0);
+		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
 		int stride = vsapi->getStride(dst_frame, 0);
 
 		const VSFrameRef *ref_frame = vsapi->getFrameFilter(n, data->ref_node, frameCtx);
-		const pixel_t *ref_ptr = vsapi->getReadPtr(ref_frame, 0);
+		const uint8_t *ref_ptr = vsapi->getReadPtr(ref_frame, 0);
 		int ref_stride = vsapi->getStride(ref_frame, 0);
 
-		void *tmp = malloc(required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
+		void *tmp = malloc(edgefixer_required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
 		if (!tmp) {
 			vsapi->setFilterError("error allocating buffer", frameCtx);
 			goto fail;
 		}
 
 		for (i = 0; i < data->top; ++i) {
-			process_edge(ptr + stride * i, ref_ptr + ref_stride * i, 1, 1, data->vi.width, data->radius, tmp);
+			edgefixer_process_edge(ptr + stride * i, ref_ptr + ref_stride * i, 1, 1, data->vi.width, data->radius, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
-			process_edge(ptr + stride * (data->vi.height - i - 1), ref_ptr + ref_stride * (data->vi.height - i - 1), 1, 1, data->vi.width, data->radius, tmp);
+			edgefixer_process_edge(ptr + stride * (data->vi.height - i - 1), ref_ptr + ref_stride * (data->vi.height - i - 1), 1, 1, data->vi.width, data->radius, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
-			process_edge(ptr + i, ref_ptr + i, stride, ref_stride, data->vi.height, data->radius, tmp);
+			edgefixer_process_edge(ptr + i, ref_ptr + i, stride, ref_stride, data->vi.height, data->radius, tmp);
 		}
 		for (i = 0; i < data->radius; ++i) {
-			process_edge(ptr + data->vi.width - i - 1, ref_ptr + data->vi.width - i - 1, stride, ref_stride, data->vi.height, data->radius, tmp);
+			edgefixer_process_edge(ptr + data->vi.width - i - 1, ref_ptr + data->vi.width - i - 1, stride, ref_stride, data->vi.height, data->radius, tmp);
 		}
 
 		ret = dst_frame;

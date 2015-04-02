@@ -26,7 +26,7 @@ public:
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
 
-		void *tmp = malloc(required_buffer(width > height ? width : height));
+		void *tmp = malloc(edgefixer_required_buffer(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ContinuityFixer] error allocating temporary buffer");
 
@@ -36,25 +36,25 @@ public:
 		// top
 		for (int i = 0; i < m_top; ++i) {
 			int ref_row = m_top - i;
-			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
 			int ref_row = height - m_bottom - 1 + i;
-			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// left
 		for (int i = 0; i < m_left; ++i) {
 			int ref_col = m_left - i;
-			process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			edgefixer_process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		// right
 		for (int i = 0; i < m_right; ++i) {
 			int ref_col = width - m_right - 1 + i;
-			process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			edgefixer_process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		free(tmp);
@@ -84,7 +84,7 @@ public:
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
 
-		void *tmp = malloc(required_buffer(width > height ? width : height));
+		void *tmp = malloc(edgefixer_required_buffer(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ReferenceFixer] error allocating temporary buffer");
 
@@ -98,19 +98,19 @@ public:
 
 		// top
 		for (int i = 0; i < m_top; ++i) {
-			process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
 		}
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
-			process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
 		}
 		// left
 		for (int i = 0; i < m_left; ++i) {
-			process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
+			edgefixer_process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
 		}
 		// right
 		for (int i = 0; i < m_right; ++i) {
-			process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
+			edgefixer_process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
 		}
 
 		free(tmp);
