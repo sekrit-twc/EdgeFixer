@@ -18,7 +18,7 @@ static void least_squares(int n, least_squares_data *d, float *a, float *b)
 	float interval_xy = (float) (d[n - 1].integral_xy - d[0].integral_xy);
 	float interval_xsqr = (float) (d[n - 1].integral_xsqr - d[0].integral_xsqr);
 	
-	// add 0.001f to denominator to prevent division by zero
+	/* Add 0.001f to denominator to prevent division by zero. */
 	*a = ((float) n * interval_xy - interval_x * interval_y) / ((interval_xsqr * (float) n - interval_x * interval_x) + 0.001f);
 	*b = (interval_y - *a * interval_x) / (float) n;
 }
@@ -129,16 +129,16 @@ static int fix_edges(const char *infile, const char *outfile, int width, int hei
 		goto fail;
 	}
 
-	// left
+	/* Left */
 	process_edge(&frame[0], &frame[1], width, width, height, radius, tmp);
 
-	// right
+	/* Right. */
 	process_edge(&frame[width - 1], &frame[width - 2], width, width, height, radius, tmp);
 
-	// top
+	/* Top. */
 	process_edge(&frame[0], &frame[width], 1, 1, width, radius, tmp);
 
-	// bottom
+	/* Bottom. */
 	process_edge(&frame[width * (height - 1)], &frame[width * (height - 2)], 1, 1, width, radius, tmp);
 
 	if (write_frame(frame, out, width, height)) {
