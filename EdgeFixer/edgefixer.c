@@ -55,12 +55,24 @@ void process_edge(pixel_t *x, const pixel_t *y, int x_dist_to_next, int y_dist_t
 			if (right > n - 1)
 				right = n - 1;
 			least_squares(right - left + 1, buf + left, &a, &b);
-			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
+			
+			//Saturate the pixel value
+			double test = (x[i * x_dist_to_next] * a + b);
+			if(test >= (1 << (sizeof(pixel_t)*8)))
+				test = (1 << (sizeof(pixel_t)*8)) - 1;
+			
+			x[i * x_dist_to_next] = (pixel_t) test;
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
-		for (int i = 0; i < n; ++i)
-			x[i * x_dist_to_next] = (pixel_t) (x[i * x_dist_to_next] * a + b);
+		for (int i = 0; i < n; ++i){
+			//Saturate the pixel value
+			double test = (x[i * x_dist_to_next] * a + b);
+			if(test >= (1 << (sizeof(pixel_t)*8)))
+				test = (1 << (sizeof(pixel_t)*8)) - 1;
+			
+			x[i * x_dist_to_next] = (pixel_t) test;
+		}
 	}
 }
 
