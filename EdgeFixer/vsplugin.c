@@ -216,6 +216,6 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
 {
 	configFunc("the.weather.channel", "edgefixer", "ultraman", VAPOURSYNTH_API_VERSION, 1, plugin);
 
-	registerFunc("Continuity", "clip:clip;left:int:opt,top:int:opt,right:int:opt;bottom:int:opt;radius:int:opt;", vs_edgefix_create, (void *)0, plugin);
-	registerFunc("Reference", "clip:clip;ref:clip;left:int:opt,top:int:opt,right:int:opt;bottom:int:opt;radius:int:opt;", vs_edgefix_create, (void *)1, plugin);
+	registerFunc("Continuity", "clip:clip;left:int:opt;top:int:opt;right:int:opt;bottom:int:opt;radius:int:opt;", vs_edgefix_create, (void *)0, plugin);
+	registerFunc("Reference", "clip:clip;ref:clip;left:int:opt;top:int:opt;right:int:opt;bottom:int:opt;radius:int:opt;", vs_edgefix_create, (void *)1, plugin);
 }
