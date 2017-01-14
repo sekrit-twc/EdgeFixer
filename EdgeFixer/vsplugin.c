@@ -54,7 +54,7 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 			int ref_col = data->left - i;
 			edgefixer_process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
 		}
-		for (i = 0; i < data->radius; ++i) {
+		for (i = 0; i < data->right; ++i) {
 			int ref_col = data->vi.width - data->right - 1 + i;
 			edgefixer_process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
 		}
@@ -107,7 +107,7 @@ static const VSFrameRef * VS_CC vs_reference_get_frame(int n, int activationReas
 		for (i = 0; i < data->left; ++i) {
 			edgefixer_process_edge(ptr + i, ref_ptr + i, stride, ref_stride, data->vi.height, data->radius, tmp);
 		}
-		for (i = 0; i < data->radius; ++i) {
+		for (i = 0; i < data->right; ++i) {
 			edgefixer_process_edge(ptr + data->vi.width - i - 1, ref_ptr + data->vi.width - i - 1, stride, ref_stride, data->vi.height, data->radius, tmp);
 		}
 
@@ -204,8 +204,7 @@ static void VS_CC vs_edgefix_create(const VSMap *in, VSMap *out, void *userData,
 	data->bottom = bottom;
 	data->radius = radius;
 
-	vsapi->createFilter(in, out, "edgefixer", vs_edgefix_init, ref_node ? vs_continuity_get_frame : vs_reference_get_frame, vs_edgefix_free, fmParallel, 0, data, core);
-
+	vsapi->createFilter(in, out, "edgefixer", vs_edgefix_init, ref_node ? vs_reference_get_frame : vs_continuity_get_frame, vs_edgefix_free, fmParallel, 0, data, core);
 	return;
 fail:
 	free(data);
