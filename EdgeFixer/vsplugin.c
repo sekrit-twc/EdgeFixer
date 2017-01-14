@@ -41,7 +41,7 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 			vsapi->setFilterError("error allocating buffer", frameCtx);
 			goto fail;
 		}
-		
+
 		for (i = 0; i < data->top; ++i) {
 			int ref_row = data->top - i;
 			edgefixer_process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);

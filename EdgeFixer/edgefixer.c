@@ -17,7 +17,7 @@ static void least_squares(int n, least_squares_data *d, float *a, float *b)
 	float interval_y = (float) (d[n - 1].integral_y - d[0].integral_y);
 	float interval_xy = (float) (d[n - 1].integral_xy - d[0].integral_xy);
 	float interval_xsqr = (float) (d[n - 1].integral_xsqr - d[0].integral_xsqr);
-	
+
 	/* Add 0.001f to denominator to prevent division by zero. */
 	*a = ((float) n * interval_xy - interval_x * interval_y) / ((interval_xsqr * (float) n - interval_x * interval_x) + 0.001f);
 	*b = (interval_y - *a * interval_x) / (float) n;
