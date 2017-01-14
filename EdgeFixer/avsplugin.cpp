@@ -1,3 +1,5 @@
+#ifndef _WIN64
+
 #include <stdlib.h>
 #include <Windows.h>
 #include "avisynth.h"
@@ -144,3 +146,5 @@ const char* __stdcall AvisynthPluginInit2(IScriptEnvironment* env)
 	env->AddFunction("ReferenceFixer", "cc[left]i[top]i[right]i[bottom]i[radius]i", Create_ReferenceFixer, NULL);
 	return "EdgeFixer";
 }
+
+#endif // _WIN64

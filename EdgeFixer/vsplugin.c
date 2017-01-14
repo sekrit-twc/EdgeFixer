@@ -142,7 +142,7 @@ static void VS_CC vs_edgefix_create(const VSMap *in, VSMap *out, void *userData,
 	int err;
 
 	node = vsapi->propGetNode(in, "clip", 0, 0);
-	if ((int)userData)
+	if ((intptr_t)userData)
 		ref_node = vsapi->propGetNode(in, "ref", 0, 0);
 
 	vi = *vsapi->getVideoInfo(node);
