@@ -1,0 +1,10 @@
+Debug
+Release
+x64
+.vs
+
+*.a
+*.exe
+*.o
+*.obj
+*.VC.db
