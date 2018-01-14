@@ -68,7 +68,8 @@ void edgefixer_process_edge(uint8_t *x, const uint8_t *y, int x_dist_to_next, in
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
-		for (i = 0; i < n; ++i)
+		for (i = 0; i < n; ++i) {
 			x[i * x_dist_to_next] = float_to_u8(x[i * x_dist_to_next] * a + b);
+		}
 	}
 }
