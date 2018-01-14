@@ -23,6 +23,7 @@ public:
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
 		PVideoFrame frame = child->GetFrame(n, env);
+		env->MakeWritable(&frame);
 
 		int width = frame->GetRowSize();
 		int height = frame->GetHeight();
@@ -32,7 +33,6 @@ public:
 		if (!tmp)
 			env->ThrowError("[ContinuityFixer] error allocating temporary buffer");
 
-		env->MakeWritable(&frame);
 		BYTE *ptr = frame->GetWritePtr();
 
 		// top
@@ -81,6 +81,7 @@ public:
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
 		PVideoFrame frame = child->GetFrame(n, env);
+		env->MakeWritable(&frame);
 
 		int width = frame->GetRowSize();
 		int height = frame->GetHeight();
@@ -90,7 +91,6 @@ public:
 		if (!tmp)
 			env->ThrowError("[ReferenceFixer] error allocating temporary buffer");
 
-		env->MakeWritable(&frame);
 		BYTE *write_ptr = frame->GetWritePtr();
 
 		PVideoFrame ref_frame = m_reference->GetFrame(n, env);
