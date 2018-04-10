@@ -2,7 +2,7 @@ EdgeFixer
 =========
 
     ContinuityFixer(clip clip, int "left", int "right", int "top", int "bottom", int "radius")
-    ReferenceFixer(clip clip, clip ref, int "left", int "right", int "top", int "bototm", int "radius")
+    ReferenceFixer(clip clip, clip ref, int "left", int "right", int "top", int "bottom", int "radius")
     
     edgefixer.Continiuty(clip clip, int "left", int "right", int "top", int "bottom", int "radius")
     edgefixer.Reference(clip clip, clip ref, int "left", int "right", int "top", int "bottom", int "radius")
