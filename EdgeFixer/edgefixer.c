@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include "edgefixer.h"
 
@@ -25,7 +26,7 @@ static void least_squares(int n, least_squares_data *d, float *a, float *b)
 
 static uint8_t float_to_u8(float x)
 {
-	return (uint8_t)(MIN(MAX(x, 0), UINT8_MAX) + 0.5f);
+	return (uint8_t)lrintf(MIN(MAX(x, 0), UINT8_MAX));
 }
 
 size_t edgefixer_required_buffer(int n)
