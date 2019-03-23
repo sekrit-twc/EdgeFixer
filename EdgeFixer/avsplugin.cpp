@@ -17,8 +17,7 @@ class ContinuityFixer: public GenericVideoFilter {
 public:
 	ContinuityFixer(PClip _child, int left, int top, int right, int bottom, int radius)
 		: GenericVideoFilter(_child), m_left(left), m_top(top), m_right(right), m_bottom(bottom), m_radius(radius)
-	{
-	}
+	{}
 
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
@@ -29,7 +28,7 @@ public:
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
 
-		void *tmp = malloc(edgefixer_required_buffer(width > height ? width : height));
+		void *tmp = malloc(edgefixer_required_buffer_b(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ContinuityFixer] error allocating temporary buffer");
 
@@ -38,25 +37,25 @@ public:
 		// top
 		for (int i = 0; i < m_top; ++i) {
 			int ref_row = m_top - i;
-			edgefixer_process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge_b(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
 			int ref_row = height - m_bottom - 1 + i;
-			edgefixer_process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge_b(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
 		}
 
 		// left
 		for (int i = 0; i < m_left; ++i) {
 			int ref_col = m_left - i;
-			edgefixer_process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			edgefixer_process_edge_b(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		// right
 		for (int i = 0; i < m_right; ++i) {
 			int ref_col = width - m_right - 1 + i;
-			edgefixer_process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			edgefixer_process_edge_b(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		free(tmp);
@@ -75,8 +74,7 @@ class ReferenceFixer: public GenericVideoFilter {
 public:
 	ReferenceFixer(PClip _child, PClip reference, int left, int top, int right, int bottom, int radius)
 		: GenericVideoFilter(_child), m_reference(reference), m_left(left), m_top(top), m_right(right), m_bottom(bottom), m_radius(radius)
-	{
-	}
+	{}
 
 	PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment *env)
 	{
@@ -87,7 +85,7 @@ public:
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
 
-		void *tmp = malloc(edgefixer_required_buffer(width > height ? width : height));
+		void *tmp = malloc(edgefixer_required_buffer_b(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ReferenceFixer] error allocating temporary buffer");
 
@@ -100,19 +98,19 @@ public:
 
 		// top
 		for (int i = 0; i < m_top; ++i) {
-			edgefixer_process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge_b(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
 		}
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
-			edgefixer_process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
+			edgefixer_process_edge_b(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
 		}
 		// left
 		for (int i = 0; i < m_left; ++i) {
-			edgefixer_process_edge(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
+			edgefixer_process_edge_b(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
 		}
 		// right
 		for (int i = 0; i < m_right; ++i) {
-			edgefixer_process_edge(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
+			edgefixer_process_edge_b(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
 		}
 
 		free(tmp);

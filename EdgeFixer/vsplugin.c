@@ -30,13 +30,21 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 	} else if (activationReason == arAllFramesReady) {
 		const VSFrameRef *src_frame = vsapi->getFrameFilter(n, data->node, frameCtx);
 		const VSFrameRef *src_planes[3] = { src_frame, src_frame, src_frame };
+		const VSFormat *format = vsapi->getFrameFormat(src_frame);
 		int plane_order[3] = { 0, 1, 2 };
 
-		VSFrameRef *dst_frame = vsapi->newVideoFrame2(data->vi.format, data->vi.width, data->vi.height, src_planes, plane_order, src_frame, core);
+		int width = vsapi->getFrameWidth(src_frame, 0);
+		int height = vsapi->getFrameHeight(src_frame, 0);
+
+		size_t (*required_buffer)(int) = format->bytesPerSample == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
+		void (*process_edge)(void *, const void *, int, int, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+
+		VSFrameRef *dst_frame = vsapi->newVideoFrame2(format, width, height, src_planes, plane_order, src_frame, core);
 		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
 		int stride = vsapi->getStride(dst_frame, 0);
+		int step = format->bytesPerSample;
 
-		void *tmp = malloc(edgefixer_required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
+		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp) {
 			vsapi->setFilterError("error allocating buffer", frameCtx);
 			goto fail;
@@ -44,19 +52,19 @@ static const VSFrameRef * VS_CC vs_continuity_get_frame(int n, int activationRea
 
 		for (i = 0; i < data->top; ++i) {
 			int ref_row = data->top - i;
-			edgefixer_process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
+			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, step, step, width, data->radius, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
-			int ref_row = data->vi.height - data->bottom - 1 + i;
-			edgefixer_process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, data->vi.width, data->radius, tmp);
+			int ref_row = height - data->bottom - 1 + i;
+			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, step, step, width, data->radius, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
 			int ref_col = data->left - i;
-			edgefixer_process_edge(ptr + ref_col - 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
+			process_edge(ptr + step * (ref_col - 1), ptr + step * ref_col, stride, stride, height, data->radius, tmp);
 		}
 		for (i = 0; i < data->right; ++i) {
-			int ref_col = data->vi.width - data->right - 1 + i;
-			edgefixer_process_edge(ptr + ref_col + 1, ptr + ref_col, stride, stride, data->vi.height, data->radius, tmp);
+			int ref_col = width - data->right - 1 + i;
+			process_edge(ptr + step * (ref_col + 1), ptr + step * ref_col, stride, stride, height, data->radius, tmp);
 		}
 
 		ret = dst_frame;
@@ -82,33 +90,41 @@ static const VSFrameRef * VS_CC vs_reference_get_frame(int n, int activationReas
 	} else if (activationReason == arAllFramesReady) {
 		const VSFrameRef *src_frame = vsapi->getFrameFilter(n, data->node, frameCtx);
 		const VSFrameRef *src_planes[3] = { src_frame, src_frame, src_frame };
+		const VSFormat *format = vsapi->getFrameFormat(src_frame);
 		int plane_order[3] = { 0, 1, 2 };
 
-		VSFrameRef *dst_frame = vsapi->newVideoFrame2(data->vi.format, data->vi.width, data->vi.height, src_planes, plane_order, src_frame, core);
+		int width = vsapi->getFrameWidth(src_frame, 0);
+		int height = vsapi->getFrameHeight(src_frame, 0);
+
+		size_t (*required_buffer)(int) = format->bytesPerSample == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
+		void (*process_edge)(void *, const void *, int, int, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+
+		VSFrameRef *dst_frame = vsapi->newVideoFrame2(format, width, height, src_planes, plane_order, src_frame, core);
 		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
 		int stride = vsapi->getStride(dst_frame, 0);
 
 		const VSFrameRef *ref_frame = vsapi->getFrameFilter(n, data->ref_node, frameCtx);
 		const uint8_t *ref_ptr = vsapi->getReadPtr(ref_frame, 0);
 		int ref_stride = vsapi->getStride(ref_frame, 0);
+		int step = format->bytesPerSample;
 
-		void *tmp = malloc(edgefixer_required_buffer(data->vi.width > data->vi.height ? data->vi.width : data->vi.height));
+		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp) {
 			vsapi->setFilterError("error allocating buffer", frameCtx);
 			goto fail;
 		}
 
 		for (i = 0; i < data->top; ++i) {
-			edgefixer_process_edge(ptr + stride * i, ref_ptr + ref_stride * i, 1, 1, data->vi.width, data->radius, tmp);
+			process_edge(ptr + stride * i, ref_ptr + ref_stride * i, step, step, width, data->radius, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
-			edgefixer_process_edge(ptr + stride * (data->vi.height - i - 1), ref_ptr + ref_stride * (data->vi.height - i - 1), 1, 1, data->vi.width, data->radius, tmp);
+			process_edge(ptr + stride * (data->vi.height - i - 1), ref_ptr + ref_stride * (height - i - 1), step, step, width, data->radius, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
-			edgefixer_process_edge(ptr + i, ref_ptr + i, stride, ref_stride, data->vi.height, data->radius, tmp);
+			process_edge(ptr + step * i, ref_ptr + step * i, stride, ref_stride, height, data->radius, tmp);
 		}
 		for (i = 0; i < data->right; ++i) {
-			edgefixer_process_edge(ptr + data->vi.width - i - 1, ref_ptr + data->vi.width - i - 1, stride, ref_stride, data->vi.height, data->radius, tmp);
+			process_edge(ptr + step * (width - i - 1), ref_ptr + step * (width - i - 1), stride, ref_stride, height, data->radius, tmp);
 		}
 
 		ret = dst_frame;
@@ -171,8 +187,8 @@ static void VS_CC vs_edgefix_create(const VSMap *in, VSMap *out, void *userData,
 		vsapi->setError(out, "only YUV is supported");
 		goto fail;
 	}
-	if (vi.format->bytesPerSample != 1 || vi.format->sampleType != stInteger) {
-		vsapi->setError(out, "only BYTE is supported");
+	if (vi.format->bytesPerSample > 2 || vi.format->sampleType != stInteger) {
+		vsapi->setError(out, "only BYTE and WORD are supported");
 		goto fail;
 	}
 	if (ref_node && !isSameFormat(&vi, vsapi->getVideoInfo(ref_node))) {
