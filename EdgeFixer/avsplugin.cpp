@@ -2,10 +2,43 @@
 
 #include <stdlib.h>
 #include <Windows.h>
-#include "avisynth.h"
+
+#ifdef AVISYNTH_PLUS
+  #include <avisynth.h>
+#else
+  #include "avisynth_2.6.h"
+#endif
 
 extern "C" {
 #include "edgefixer.h"
+}
+
+const AVS_Linkage *AVS_linkage;
+bool g_avisynth_plus;
+
+bool is_avisynth_plus()
+{
+	VideoInfo vi = VideoInfo();
+	vi.pixel_type = -536805376; // CS_Y16
+	return vi.BitsPerPixel() == 16;
+}
+
+int component_size(const VideoInfo &vi)
+{
+#ifdef AVISYNTH_PLUS
+	return is_avisynth_plus() ? vi.ComponentSize() : 1;
+#else
+	return 1;
+#endif
+}
+
+int bits_per_component(const VideoInfo &vi)
+{
+#ifdef AVISYNTH_PLUS
+	return is_avisynth_plus() ? vi.BitsPerComponent() : 8;
+#else
+	return 8;
+#endif
 }
 
 class ContinuityFixer: public GenericVideoFilter {
@@ -24,11 +57,15 @@ public:
 		PVideoFrame frame = child->GetFrame(n, env);
 		env->MakeWritable(&frame);
 
-		int width = frame->GetRowSize();
+		int width = frame->GetRowSize() / component_size(vi);
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
+		int step = component_size(vi);
 
-		void *tmp = malloc(edgefixer_required_buffer_b(width > height ? width : height));
+		size_t (*required_buffer)(int) = component_size(vi) == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
+		void (*process_edge)(void *, const void *, int, int, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+
+		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ContinuityFixer] error allocating temporary buffer");
 
@@ -37,25 +74,25 @@ public:
 		// top
 		for (int i = 0; i < m_top; ++i) {
 			int ref_row = m_top - i;
-			edgefixer_process_edge_b(ptr + stride * (ref_row - 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, step, step, width, m_radius, tmp);
 		}
 
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
 			int ref_row = height - m_bottom - 1 + i;
-			edgefixer_process_edge_b(ptr + stride * (ref_row + 1), ptr + stride * ref_row, 1, 1, width, m_radius, tmp);
+			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, step, step, width, m_radius, tmp);
 		}
 
 		// left
 		for (int i = 0; i < m_left; ++i) {
 			int ref_col = m_left - i;
-			edgefixer_process_edge_b(ptr + ref_col - 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			process_edge(ptr + step * (ref_col - 1), ptr + step * ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		// right
 		for (int i = 0; i < m_right; ++i) {
 			int ref_col = width - m_right - 1 + i;
-			edgefixer_process_edge_b(ptr + ref_col + 1, ptr + ref_col, stride, stride, height, m_radius, tmp);
+			process_edge(ptr + step * (ref_col + 1), ptr + step * ref_col, stride, stride, height, m_radius, tmp);
 		}
 
 		free(tmp);
@@ -81,11 +118,15 @@ public:
 		PVideoFrame frame = child->GetFrame(n, env);
 		env->MakeWritable(&frame);
 
-		int width = frame->GetRowSize();
+		int width = frame->GetRowSize() / component_size(vi);
 		int height = frame->GetHeight();
 		int stride = frame->GetPitch();
+		int step = component_size(vi);
 
-		void *tmp = malloc(edgefixer_required_buffer_b(width > height ? width : height));
+		size_t (*required_buffer)(int) = component_size(vi) == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
+		void (*process_edge)(void *, const void *, int, int, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+
+		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp)
 			env->ThrowError("[ReferenceFixer] error allocating temporary buffer");
 
@@ -98,19 +139,19 @@ public:
 
 		// top
 		for (int i = 0; i < m_top; ++i) {
-			edgefixer_process_edge_b(write_ptr + stride * i, read_ptr + ref_stride * i, 1, 1, width, m_radius, tmp);
+			process_edge(write_ptr + stride * i, read_ptr + ref_stride * i, step, step, width, m_radius, tmp);
 		}
 		// bottom
 		for (int i = 0; i < m_bottom; ++i) {
-			edgefixer_process_edge_b(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), 1, 1, width, m_radius, tmp);
+			process_edge(write_ptr + stride * (height - i - 1), read_ptr + ref_stride * (height - i - 1), step, step, width, m_radius, tmp);
 		}
 		// left
 		for (int i = 0; i < m_left; ++i) {
-			edgefixer_process_edge_b(write_ptr + i, read_ptr + i, stride, ref_stride, height, m_radius, tmp);
+			process_edge(write_ptr + step * i, read_ptr + step * i, stride, ref_stride, height, m_radius, tmp);
 		}
 		// right
 		for (int i = 0; i < m_right; ++i) {
-			edgefixer_process_edge_b(write_ptr + width - i - 1, read_ptr + width - i - 1, stride, ref_stride, height, m_radius, tmp);
+			process_edge(write_ptr + step * (width - i - 1), read_ptr + step * (width - i - 1), stride, ref_stride, height, m_radius, tmp);
 		}
 
 		free(tmp);
@@ -119,27 +160,36 @@ public:
 	}
 };
 
-AVSValue __cdecl Create_ContinuityFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
+AVSValue __cdecl Create_ContinuityFixer(AVSValue args, void *user_data, IScriptEnvironment *env)
 {
 	if (!args[0].AsClip()->GetVideoInfo().IsPlanar())
 		env->ThrowError("[ContinuityFixer] input clip must be planar");
+	if (component_size(args[0].AsClip()->GetVideoInfo()) > 2)
+		env->ThrowError("[ContinuityFixer] input clip must be BYTE or WORD");
 
 	return new ContinuityFixer(args[0].AsClip(), args[1].AsInt(0), args[2].AsInt(0), args[3].AsInt(0), args[4].AsInt(0), args[5].AsInt(0));
 }
 
-AVSValue __cdecl Create_ReferenceFixer(AVSValue args, void* user_data, IScriptEnvironment* env)
+AVSValue __cdecl Create_ReferenceFixer(AVSValue args, void *user_data, IScriptEnvironment *env)
 {
 	if (!args[0].AsClip()->GetVideoInfo().IsPlanar() || !args[1].AsClip()->GetVideoInfo().IsPlanar())
 		env->ThrowError("[ReferenceFixer] clips must be planar");
 	if (args[0].AsClip()->GetVideoInfo().width != args[1].AsClip()->GetVideoInfo().width || args[0].AsClip()->GetVideoInfo().height != args[1].AsClip()->GetVideoInfo().height)
 		env->ThrowError("[ReferenceFixer] clips must have same dimensions");
+	if (component_size(args[0].AsClip()->GetVideoInfo()) > 2 || component_size(args[1].AsClip()->GetVideoInfo()) > 2)
+		env->ThrowError("[ReferenceFixer] clips must be BYTE or WORD");
+	if (bits_per_component(args[0].AsClip()->GetVideoInfo()) != bits_per_component(args[1].AsClip()->GetVideoInfo()))
+		env->ThrowError("[ReferenceFixer] clips must have same bit depth");
 
 	return new ReferenceFixer(args[0].AsClip(), args[1].AsClip(), args[2].AsInt(0), args[3].AsInt(0), args[4].AsInt(0), args[5].AsInt(0), args[6].AsInt(0));
 }
 
 extern "C" __declspec(dllexport)
-const char* __stdcall AvisynthPluginInit2(IScriptEnvironment* env)
+const char * __stdcall AvisynthPluginInit3(IScriptEnvironment *env, const AVS_Linkage *const vectors)
 {
+	AVS_linkage = vectors;
+	g_avisynth_plus = is_avisynth_plus();
+
 	env->AddFunction("ContinuityFixer", "c[left]i[top]i[right]i[bottom]i[radius]i", Create_ContinuityFixer, NULL);
 	env->AddFunction("ReferenceFixer", "cc[left]i[top]i[right]i[bottom]i[radius]i", Create_ReferenceFixer, NULL);
 	return "EdgeFixer";
