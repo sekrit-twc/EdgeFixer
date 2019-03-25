@@ -1,4 +1,4 @@
-#ifndef _WIN64
+#if !defined(_WIN64) || defined(AVISYNTH_PLUS)
 
 #include <stdlib.h>
 #include <Windows.h>
@@ -26,7 +26,7 @@ bool is_avisynth_plus()
 int component_size(const VideoInfo &vi)
 {
 #ifdef AVISYNTH_PLUS
-	return is_avisynth_plus() ? vi.ComponentSize() : 1;
+	return g_avisynth_plus ? vi.ComponentSize() : 1;
 #else
 	return 1;
 #endif
@@ -35,7 +35,7 @@ int component_size(const VideoInfo &vi)
 int bits_per_component(const VideoInfo &vi)
 {
 #ifdef AVISYNTH_PLUS
-	return is_avisynth_plus() ? vi.BitsPerComponent() : 8;
+	return g_avisynth_plus ? vi.BitsPerComponent() : 8;
 #else
 	return 8;
 #endif
@@ -195,4 +195,4 @@ const char * __stdcall AvisynthPluginInit3(IScriptEnvironment *env, const AVS_Li
 	return "EdgeFixer";
 }
 
-#endif // _WIN64
+#endif // !defined(_WIN64) || defined(AVISYNTH_PLUS)
