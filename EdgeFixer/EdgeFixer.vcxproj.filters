@@ -29,14 +29,5 @@
     <ClInclude Include="edgefixer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VapourSynth.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VSHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="avisynth_2.6.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

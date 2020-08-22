@@ -1,6 +1,6 @@
+#include <VapourSynth.h>
+#include <VSHelper.h>
 #include "edgefixer.h"
-#include "VapourSynth.h"
-#include "VSHelper.h"
 
 typedef struct vs_edgefix_data {
 	VSNodeRef *node;
