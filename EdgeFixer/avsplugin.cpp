@@ -1,13 +1,7 @@
-#if !defined(_WIN64) || defined(AVISYNTH_PLUS)
-
 #include <stdlib.h>
 #include <Windows.h>
 
-#ifdef AVISYNTH_PLUS
-  #include <avisynth.h>
-#else
-  #include "avisynth_2.6.h"
-#endif
+#include <avisynth.h>
 
 extern "C" {
 #include "edgefixer.h"
@@ -25,20 +19,12 @@ bool is_avisynth_plus()
 
 int component_size(const VideoInfo &vi)
 {
-#ifdef AVISYNTH_PLUS
 	return g_avisynth_plus ? vi.ComponentSize() : 1;
-#else
-	return 1;
-#endif
 }
 
 int bits_per_component(const VideoInfo &vi)
 {
-#ifdef AVISYNTH_PLUS
 	return g_avisynth_plus ? vi.BitsPerComponent() : 8;
-#else
-	return 8;
-#endif
 }
 
 class ContinuityFixer: public GenericVideoFilter {
@@ -194,5 +180,3 @@ const char * __stdcall AvisynthPluginInit3(IScriptEnvironment *env, const AVS_Li
 	env->AddFunction("ReferenceFixer", "cc[left]i[top]i[right]i[bottom]i[radius]i", Create_ReferenceFixer, NULL);
 	return "EdgeFixer";
 }
-
-#endif // !defined(_WIN64) || defined(AVISYNTH_PLUS)
