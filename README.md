@@ -3,7 +3,7 @@ EdgeFixer
 
     ContinuityFixer(clip clip, int "left", int "top", int "right", int "bottom", int "radius")
     ReferenceFixer(clip clip, clip ref, int "left", int "top", int "right", int "bottom", int "radius")
-    
+
     edgefixer.Continuity(clip clip, int "left", int "top", int "right", int "bottom", int "radius")
     edgefixer.Reference(clip clip, clip ref, int "left", int "top", int "right", int "bottom", int "radius")
 
@@ -39,3 +39,10 @@ In this case, an alternative luminance reference can be applied through Referenc
     edgefixer.Reference(clip, ref, left=10)
 
 ![RF](https://user-images.githubusercontent.com/2678995/45467299-c688aa00-b6d3-11e8-8729-8b0152245841.png)
+
+Compilation (vsplugin)
+========
+```
+meson build
+ninja -C build
+```
