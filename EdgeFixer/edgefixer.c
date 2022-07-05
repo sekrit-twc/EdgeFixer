@@ -63,7 +63,7 @@ size_t edgefixer_required_buffer_w(int n)
 	return n * sizeof(least_squares_data64);
 }
 
-void edgefixer_process_edge_b(void *xptr, const void *yptr, int x_dist_to_next, int y_dist_to_next, int n, int radius, void *tmp)
+void edgefixer_process_edge_b(void *xptr, const void *yptr, ptrdiff_t x_dist_to_next, ptrdiff_t y_dist_to_next, int n, int radius, void *tmp)
 {
 	uint8_t *x = xptr;
 	const uint8_t *y = yptr;
@@ -78,8 +78,8 @@ void edgefixer_process_edge_b(void *xptr, const void *yptr, int x_dist_to_next, 
 	buf[0].integral_xsqr = x[0] * x[0];
 
 	for (i = 1; i < n; ++i) {
-		uint16_t _x = x[i * x_dist_to_next / sizeof(uint8_t)];
-		uint16_t _y = y[i * y_dist_to_next / sizeof(uint8_t)];
+		uint16_t _x = x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint8_t)];
+		uint16_t _y = y[i * y_dist_to_next / (ptrdiff_t)sizeof(uint8_t)];
 
 		buf[i].integral_x = buf[i - 1].integral_x + _x;
 		buf[i].integral_y = buf[i - 1].integral_y + _y;
@@ -97,17 +97,17 @@ void edgefixer_process_edge_b(void *xptr, const void *yptr, int x_dist_to_next, 
 			if (right > n - 1)
 				right = n - 1;
 			least_squares(right - left + 1, buf + left, &a, &b);
-			x[i * x_dist_to_next / sizeof(uint8_t)] = float_to_u8(x[i * x_dist_to_next / sizeof(uint8_t)] * a + b);
+			x[i * x_dist_to_next / sizeof(uint8_t)] = float_to_u8(x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint8_t)] * a + b);
 		}
 	} else {
 		least_squares(n, buf, &a, &b);
 		for (i = 0; i < n; ++i) {
-			x[i * x_dist_to_next / sizeof(uint8_t)] = float_to_u8(x[i * x_dist_to_next / sizeof(uint8_t)] * a + b);
+			x[i * x_dist_to_next / sizeof(uint8_t)] = float_to_u8(x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint8_t)] * a + b);
 		}
 	}
 }
 
-void edgefixer_process_edge_w(void *xptr, const void *yptr, int x_dist_to_next, int y_dist_to_next, int n, int radius, void *tmp)
+void edgefixer_process_edge_w(void *xptr, const void *yptr, ptrdiff_t x_dist_to_next, ptrdiff_t y_dist_to_next, int n, int radius, void *tmp)
 {
 	uint16_t *x = xptr;
 	const uint16_t *y = yptr;
@@ -122,8 +122,8 @@ void edgefixer_process_edge_w(void *xptr, const void *yptr, int x_dist_to_next, 
 	buf[0].integral_xsqr = (long long)x[0] * x[0];
 
 	for (i = 1; i < n; ++i) {
-		uint32_t _x = x[i * x_dist_to_next / sizeof(uint16_t)];
-		uint32_t _y = y[i * y_dist_to_next / sizeof(uint16_t)];
+		uint32_t _x = x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint16_t)];
+		uint32_t _y = y[i * y_dist_to_next / (ptrdiff_t)sizeof(uint16_t)];
 
 		buf[i].integral_x = buf[i - 1].integral_x + _x;
 		buf[i].integral_y = buf[i - 1].integral_y + _y;
@@ -141,12 +141,12 @@ void edgefixer_process_edge_w(void *xptr, const void *yptr, int x_dist_to_next, 
 			if (right > n - 1)
 				right = n - 1;
 			least_squares64(right - left + 1, buf + left, &a, &b);
-			x[i * x_dist_to_next / sizeof(uint16_t)] = double_to_u16(x[i * x_dist_to_next / sizeof(uint16_t)] * a + b);
+			x[i * x_dist_to_next / sizeof(uint16_t)] = double_to_u16(x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint16_t)] * a + b);
 		}
 	} else {
 		least_squares64(n, buf, &a, &b);
 		for (i = 0; i < n; ++i) {
-			x[i * x_dist_to_next / sizeof(uint16_t)] = double_to_u16(x[i * x_dist_to_next / sizeof(uint16_t)] * a + b);
+			x[i * x_dist_to_next / sizeof(uint16_t)] = double_to_u16(x[i * x_dist_to_next / (ptrdiff_t)sizeof(uint16_t)] * a + b);
 		}
 	}
 }

@@ -49,7 +49,7 @@ public:
 		int step = component_size(vi);
 
 		size_t (*required_buffer)(int) = component_size(vi) == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
-		void (*process_edge)(void *, const void *, int, int, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
 
 		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp)
@@ -110,7 +110,7 @@ public:
 		int step = component_size(vi);
 
 		size_t (*required_buffer)(int) = component_size(vi) == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
-		void (*process_edge)(void *, const void *, int, int, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, void *) = component_size(vi) == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
 
 		void *tmp = malloc(required_buffer(width > height ? width : height));
 		if (!tmp)
