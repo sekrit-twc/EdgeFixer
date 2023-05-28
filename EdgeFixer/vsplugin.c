@@ -233,6 +233,6 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit2(VSPlugin *plugin, VSPLUGINAPI *vspa
 
 #define COMMON_ARGS "left:int:opt;top:int:opt;right:int:opt;bottom:int:opt;radius:int:opt;"
 	vspapi->registerFunction("Continuity", "clip:vnode;" COMMON_ARGS, "clip:vnode;", vs_edgefix_create, (void *)0, plugin);
-	vspapi->registerFunction("Reference", "clip:clip;ref:clip;" COMMON_ARGS, "clip:vnode;", vs_edgefix_create, (void *)1, plugin);
+	vspapi->registerFunction("Reference", "clip:vnode;ref:vnode;" COMMON_ARGS, "clip:vnode;", vs_edgefix_create, (void *)1, plugin);
 #undef COMMON_ARGS
 }
