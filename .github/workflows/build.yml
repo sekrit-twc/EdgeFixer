@@ -1,0 +1,107 @@
+name: Build
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build-non-windows-wheel:
+    strategy:
+      matrix:
+        include:
+        - arch: linux_x86_64
+          runs-on: ubuntu-latest
+        - arch: linux_aarch64
+          runs-on: ubuntu-24.04-arm
+        - arch: macosx_x86_64
+          runs-on: macos-15-intel
+        - arch: macosx_arm64
+          runs-on: macos-15
+      fail-fast: false
+
+    runs-on: ${{ matrix.runs-on }}
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - uses: pypa/cibuildwheel@v3.4.0
+      env:
+        CIBW_BUILD: cp314-*
+        CIBW_BUILD_FRONTEND: uv
+        CIBW_ENVIRONMENT_MACOS: > 
+          MACOSX_DEPLOYMENT_TARGET=15.0
+      with:
+        output-dir: dist
+        extras: uv
+        
+    - name: Fix tag
+      run: |
+        cd dist
+        for whl in *.whl; do
+          pipx run wheel tags --remove --python-tag py3 --abi-tag none $whl
+        done
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: edgefixer-${{ matrix.arch }}
+        path: dist
+
+  build-windows-wheel:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: CLANG64
+        update: true
+        install: >-
+          mingw-w64-clang-x86_64-clang
+          mingw-w64-clang-x86_64-meson
+          mingw-w64-clang-x86_64-ninja
+          mingw-w64-clang-x86_64-toolchain
+          mingw-w64-clang-x86_64-uv
+          mingw-w64-clang-x86_64-git
+          
+    - name: Build
+      run: |
+        uv build
+
+    - name: Fix tag
+      run: |
+        cd dist
+        for whl in *.whl; do
+          uvx wheel tags --remove --python-tag py3 --abi-tag none $whl
+        done
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: edgefixer-sdist
+        path: dist/*.tar.gz
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: edgefixer-win_amd64
+        path: dist/*.whl
+
+  publish:
+    permissions:
+      id-token: write
+    needs: [build-non-windows-wheel, build-windows-wheel]
+    if: ${{ startsWith(github.ref, 'refs/tags/r') }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        path: dist
+        merge-multiple: true
+
+    - uses: pypa/gh-action-pypi-publish@release/v1
