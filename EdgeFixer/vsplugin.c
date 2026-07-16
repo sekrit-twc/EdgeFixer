@@ -29,9 +29,10 @@ static const VSFrame * VS_CC vs_continuity_get_frame(int n, int activationReason
 
 		int width = vsapi->getFrameWidth(src_frame, 0);
 		int height = vsapi->getFrameHeight(src_frame, 0);
+		int depth = data->vi.format.bitsPerSample;
 
 		size_t (*required_buffer)(int) = format->bytesPerSample == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
-		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
 
 		VSFrame *dst_frame = vsapi->newVideoFrame2(format, width, height, src_planes, plane_order, src_frame, core);
 		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
@@ -46,19 +47,19 @@ static const VSFrame * VS_CC vs_continuity_get_frame(int n, int activationReason
 
 		for (i = 0; i < data->top; ++i) {
 			int ref_row = data->top - i;
-			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, step, step, width, data->radius, tmp);
+			process_edge(ptr + stride * (ref_row - 1), ptr + stride * ref_row, step, step, width, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
 			int ref_row = height - data->bottom - 1 + i;
-			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, step, step, width, data->radius, tmp);
+			process_edge(ptr + stride * (ref_row + 1), ptr + stride * ref_row, step, step, width, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
 			int ref_col = data->left - i;
-			process_edge(ptr + step * (ref_col - 1), ptr + step * ref_col, stride, stride, height, data->radius, tmp);
+			process_edge(ptr + step * (ref_col - 1), ptr + step * ref_col, stride, stride, height, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->right; ++i) {
 			int ref_col = width - data->right - 1 + i;
-			process_edge(ptr + step * (ref_col + 1), ptr + step * ref_col, stride, stride, height, data->radius, tmp);
+			process_edge(ptr + step * (ref_col + 1), ptr + step * ref_col, stride, stride, height, data->radius, depth, tmp);
 		}
 
 		ret = dst_frame;
@@ -89,9 +90,10 @@ static const VSFrame * VS_CC vs_reference_get_frame(int n, int activationReason,
 
 		int width = vsapi->getFrameWidth(src_frame, 0);
 		int height = vsapi->getFrameHeight(src_frame, 0);
+		int depth = data->vi.format.bitsPerSample;
 
 		size_t (*required_buffer)(int) = format->bytesPerSample == 2 ? edgefixer_required_buffer_w : edgefixer_required_buffer_b;
-		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
+		void (*process_edge)(void *, const void *, ptrdiff_t, ptrdiff_t, int, int, int, void *) = format->bytesPerSample == 2 ? edgefixer_process_edge_w : edgefixer_process_edge_b;
 
 		VSFrame *dst_frame = vsapi->newVideoFrame2(format, width, height, src_planes, plane_order, src_frame, core);
 		uint8_t *ptr = vsapi->getWritePtr(dst_frame, 0);
@@ -109,16 +111,16 @@ static const VSFrame * VS_CC vs_reference_get_frame(int n, int activationReason,
 		}
 
 		for (i = 0; i < data->top; ++i) {
-			process_edge(ptr + stride * i, ref_ptr + ref_stride * i, step, step, width, data->radius, tmp);
+			process_edge(ptr + stride * i, ref_ptr + ref_stride * i, step, step, width, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->bottom; ++i) {
-			process_edge(ptr + stride * (data->vi.height - i - 1), ref_ptr + ref_stride * (height - i - 1), step, step, width, data->radius, tmp);
+			process_edge(ptr + stride * (height - i - 1), ref_ptr + ref_stride * (height - i - 1), step, step, width, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->left; ++i) {
-			process_edge(ptr + step * i, ref_ptr + step * i, stride, ref_stride, height, data->radius, tmp);
+			process_edge(ptr + step * i, ref_ptr + step * i, stride, ref_stride, height, data->radius, depth, tmp);
 		}
 		for (i = 0; i < data->right; ++i) {
-			process_edge(ptr + step * (width - i - 1), ref_ptr + step * (width - i - 1), stride, ref_stride, height, data->radius, tmp);
+			process_edge(ptr + step * (width - i - 1), ref_ptr + step * (width - i - 1), stride, ref_stride, height, data->radius, depth, tmp);
 		}
 
 		ret = dst_frame;
@@ -177,6 +179,10 @@ static void VS_CC vs_edgefix_create(const VSMap *in, VSMap *out, void *userData,
 	if (err)
 		radius = 0;
 
+	if (!vsh_isConstantVideoFormat(&vi)) {
+		vsapi->mapSetError(out, "must be constant format");
+		goto fail;
+	}
 	if (vi.format.colorFamily == cfRGB) {
 		vsapi->mapSetError(out, "only YUV is supported");
 		goto fail;
@@ -185,17 +191,29 @@ static void VS_CC vs_edgefix_create(const VSMap *in, VSMap *out, void *userData,
 		vsapi->mapSetError(out, "only BYTE and WORD are supported");
 		goto fail;
 	}
-	if (ref_node && !vsh_isSameVideoFormat(&vi.format, &vsapi->getVideoInfo(ref_node)->format)) {
-		vsapi->mapSetError(out, "clip and reference must have same format");
-		goto fail;
+
+	if (ref_node) {
+		const VSVideoInfo *ref_vi = vsapi->getVideoInfo(ref_node);
+		if (!vsh_isConstantVideoFormat(ref_vi)) {
+			vsapi->mapSetError(out, "must be constant format");
+			goto fail;
+		}
+		if (!vsh_isSameVideoInfo(&vi, ref_vi)) {
+			vsapi->mapSetError(out, "clip and reference must have same format");
+			goto fail;
+		}
 	}
 
 	if (left < 0 || right < 0 || top < 0 || bottom < 0) {
 		vsapi->mapSetError(out, "too few edges to fix");
 		goto fail;
 	}
-	if (left > vi.width || right > vi.width || top > vi.height || bottom > vi.height) {
+	if (left >= vi.width || right >= vi.width || top >= vi.height || bottom >= vi.height) {
 		vsapi->mapSetError(out, "too many edges to fix");
+		goto fail;
+	}
+	if (radius < 0) {
+		vsapi->mapSetError(out, "radius must be non-negative");
 		goto fail;
 	}
 
